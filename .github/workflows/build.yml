@@ -1,0 +1,39 @@
+name: Build v4l2loopback for SM-N970F
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download Samsung kernel
+        run: |
+          wget -O kernel.tar.gz "https://opensource.samsung.com/release/Samsung-Exynos/kernel/SM-N970F/android-4.14.117-19524157.tar.gz"
+          tar xzf kernel.tar.gz
+
+      - name: Prepare config
+        run: |
+          # récupéré par API depuis config.gz
+          gunzip -c config.gz > .config
+
+      - name: Prepare build
+        run: |
+          mkdir build && cp .config build/.config
+
+      - name: Clone v4l2loopback
+        run: git clone --depth 1 https://github.com/umlaeute/v4l2loopback.git
+
+      - name: Build v4l2loopback
+        run: |
+          make ARCH=arm64 O=build olddefconfig
+          make -C build M=./v4l2loopback ARCH=arm64 modules
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: v4l2loopback-Exynos-N970F.ko
+          path: v4l2loopback/v4l2loopback.ko
